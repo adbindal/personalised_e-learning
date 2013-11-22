@@ -1,0 +1,75 @@
+Time Remaining: 20
+Path Value = 2.60111790119
+Time Taken = 19.56
+(0, 0),3 -> (1, 1),7 -> (2, 1),3 -> (2, 0),1 -> (3, 2),3 -> (4, 0),7
+2.000000 on Level 0
+Current Ability: 0.330000
+User's Score:  [0.76, 0.39, 0.55, 0.79, 0.23, 0.11, 0.19, 0.71, 0.98, 0.61, 0.27]
+Computed Ability: 0.546450
+Total Number of vertexes:  3
+Current Parameters --->  aim = 1 fitF = 1.067438 time = 2.000000  alpha = 0.373290  currentLevel =  0
+Total Similar Students:- 6952
+Current Status :  [0.9942129629629629, 0.9939260077305356, 0.9962546816479401]
+Static Vertex is 1
+Recommended Vertex is 2
+Vertex Taken is 1
+Time Remaining: 18.0
+Path Value = 1.77470576368
+Time Taken = 17.88
+(1, 1),7 -> (2, 1),3 -> (2, 0),1 -> (3, 2),3 -> (3, 1),1 -> (4, 0),7
+3.000000 on Level 1
+Current Ability: 0.373290
+User's Score:  [0.23, 0.54, 0.76, 0.53, 0.58, 0.12, 0.3, 0.87, 0.55, 0.74, 0.31, 0.47, 0.98]
+Computed Ability: 0.482631
+Total Number of vertexes:  2
+Current Parameters --->  aim = 1 fitF = 1.173577 time = 5.000000  alpha = 0.395158  currentLevel =  1
+Total Similar Students:- 11341
+Current Status :  [0.9952027911033581, 0.9949666913397484]
+Static Vertex is 1
+Recommended Vertex is 0
+Vertex Taken is 0
+Time Remaining: 15.0
+Path Value = 1.68276725529
+Time Taken = 14.32
+(2, 0),3 -> (3, 2),3 -> (3, 1),1 -> (4, 0),7
+6.000000 on Level 2
+Current Ability: 0.395158
+User's Score:  [0.93, 0.06, 0.46, 0.18, 0.93, 0.7, 0.74, 0.67, 0.28, 0.08, 0.14, 0.9, 0.14, 0.57, 0.77, 0.49, 0.04]
+Computed Ability: 0.487499
+Total Number of vertexes:  3
+Current Parameters --->  aim = 1 fitF = 1.363829 time = 11.000000  alpha = 0.413627  currentLevel =  2
+Total Similar Students:- 11322
+Current Status :  [0.9956683168316832, 0.9928174991838067, 0.9967751392553503]
+Static Vertex is 2
+Recommended Vertex is 2
+Vertex Taken is 2
+Time Remaining: 9.0
+Path Value = 1.19371561782
+Time Taken = 8.32
+(3, 2),3 -> (3, 1),1 -> (4, 0),7
+5.320000 on Level 3
+Current Ability: 0.413627
+User's Score:  [0.61, 0.94, 0.38, 0.5, 0.97, 0.79, 0.82, 0.9, 0.72, 0.24, 0.76, 0.79, 0.05, 0.23, 0.62, 0.81, 0.44, 0.03, 0.49, 0.73]
+Computed Ability: 0.648527
+Total Number of vertexes:  1
+Current Parameters --->  aim = 1 fitF = 1.776033 time = 16.320000  alpha = 0.460607  currentLevel =  3
+Total Similar Students:- 13973
+Current Status :  [0.9958491376225578]
+Static Vertex is 0
+Recommended Vertex is 0
+Vertex Taken is 0
+Time Remaining: 3.68
+Path Value = 1.12481315028
+Time Taken = 3.0
+(4, 0),7
+3.000000 on Level 4
+Current Ability: 0.460607
+User's Score:  [0.74, 0.25, 0.25, 0.43, 0.35, 0.0, 0.49, 0.99, 0.55, 0.94, 0.46, 0.75, 0.93, 0.12, 0.49, 0.59, 0.51, 0.53, 0.0]
+Computed Ability: 0.509022
+----------------------------------------------------------------------------------------------------
+Path Value = 2.40654584961
+Time Taken = 19.32
+(0, 0),3 -> (1, 1),7 -> (2, 0),3 -> (3, 2),3 -> (3, 1),1 -> (4, 0),7
+----------------------------------------------------------------------------------------------------
+Time taken: 273297 ms
+[Finished in 273.5s]
