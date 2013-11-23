@@ -107,7 +107,7 @@ def setPosition(G):
 
     # For the placcement of the Edges on Screen
     mid = (max(vals)-1)/2.0
-    for i in reversed(G.nodes()):
+    for i in G.nodes():
         lvl, val = map(int, i.split(','))
         pos[i] = (lvl, (-val + (vals[lvl]-1)/2.0 + mid))
     return pos
@@ -156,7 +156,7 @@ def draw_graph(G, nodeLabels = None, edgeLabels = None, pathList = None):
     return
 
 def showProgress(G, n, e):
-    Aim = "Testing/Submitted.txt"
+    Aim = "290913_peer_1.txt"
     #Aim = "../Result_current.txt"
     for path, labels in Paths.getPath(Aim):
         pathList = [(path[i-1], path[i])for i in range(1, len(path))]

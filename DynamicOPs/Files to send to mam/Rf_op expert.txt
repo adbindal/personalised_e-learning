@@ -1,0 +1,86 @@
+****************************** LEVEL 1 ******************************
+Time Remaining: 20
+Path Value = 2.74763676949
+Time Taken = 17.58
+(0, 0),3 -> (1, 1),1 -> (2, 1),3 -> (2, 0),1 -> (3, 2),3 -> (4, 0),7
+Current Ability: 0.350000
+User's Score:  [0.92, 0.85, 0.91, 0.72, 0.86, 0.11, 0.45, 0.57, 0.69, 0.32, 0.36]
+Exam Template:  [0.01, 0.15, 0.04, 0.15, 0.09, 0.17, 0.09, 0.08, 0.11, 0.03, 0.04]
+Computed Ability: 0.563200
+Total Number of vertexes:  3
+Current Parameters --->  aim = 0 fitF = 1.069745 time = 2.000000  alpha = 0.392640  currentLevel =  0
+Total Students   :-  33718
+Similar Students :-  6896
+User's  are provided with  Expert Recommendation  !!!
+Importance Values :  [135.94946928284352, 293.02843510419893, 126.44882558500089]
+Total Students    :  [726.0, 1562.0, 672.0]
+Current Vertex is 0
+****************************** LEVEL 2 ******************************
+Time Remaining: 18.0
+Path Value = 1.92350654974
+Time Taken = 15.91
+(1, 1),5 -> (1, 0),7 -> (2, 0),3 -> (3, 2),1 -> (4, 0),3
+Current Ability: 0.392640
+User's Score:  [0.99, 0.03, 0.66, 0.87, 0.16, 0.26, 0.42, 0.88, 0.99, 0.55, 0.19, 0.5, 0.06]
+Exam Template:  [0.07, 0.07, 0.12, 0.03, 0.12, 0.06, 0.03, 0.05, 0.0, 0.1, 0.13, 0.02, 0.13]
+Computed Ability: 0.365600
+Total Number of vertexes:  2
+Current Parameters --->  aim = 0 fitF = 1.463266 time = 7.980000  alpha = 0.387232  currentLevel =  1
+Total Students   :-  33718
+Similar Students :-  8600
+User's  are provided with  Expert Recommendation  !!!
+Importance Values :  [21.667058306804414, 33.92767976999137]
+Total Students    :  [108.0, 185.0]
+Current Vertex is 0
+****************************** LEVEL 3 ******************************
+Time Remaining: 12.02
+Path Value = 1.76015319078
+Time Taken = 9.96
+(2, 0),3 -> (3, 2),1 -> (4, 0),5
+Current Ability: 0.387232
+User's Score:  [0.07, 0.82, 0.73, 0.75, 0.32, 0.26, 0.8, 0.52, 0.84, 0.28, 0.74]
+Exam Template:  [0.07, 0.14, 0.07, 0.01, 0.01, 0.02, 0.1, 0.2, 0.12, 0.08, 0.13]
+Computed Ability: 0.590100
+Total Number of vertexes:  3
+Current Parameters --->  aim = 0 fitF = 1.977678 time = 13.980000  alpha = 0.427806  currentLevel =  2
+Total Students   :-  33718
+Similar Students :-  10793
+User's  are provided with  Expert Recommendation  !!!
+Importance Values :  [0.0, 0.0, 0.0]
+Total Students    :  [0.0, 0.0, 0.0]
+Current Vertex is 0
+****************************** LEVEL 4 ******************************
+Time Remaining: 6.02
+Path Value = 1.1679437853
+Time Taken = 4.74
+(3, 2),1 -> (3, 1),1 -> (4, 0),5
+Current Ability: 0.427806
+User's Score:  [0.06, 0.99, 0.64, 0.36, 0.26, 0.37, 0.66, 0.43, 0.64, 0.65, 0.74, 0.03, 0.73, 0.76, 0.96]
+Exam Template:  [0.08, 0.09, 0.01, 0.08, 0.11, 0.1, 0.05, 0.02, 0.02, 0.06, 0.0, 0.07, 0.03, 0.11, 0.09]
+Computed Ability: 0.482100
+Total Number of vertexes:  1
+Current Parameters --->  aim = 0 fitF = 2.368409 time = 16.710000  alpha = 0.438664  currentLevel =  3
+Total Students   :-  33718
+Similar Students :-  13405
+User's  are provided with  Expert Recommendation  !!!
+Importance Values :  [0.0]
+Total Students    :  [0.0]
+Current Vertex is 1
+****************************** LEVEL 5 ******************************
+Time Remaining: 3.29
+Path Value = 1.05871128872
+Time Taken = 0.99
+(4, 0),1
+Current Ability: 0.438664
+User's Score:  [0.58, 0.21, 0.94, 0.06, 0.96, 0.36, 0.73, 0.19, 0.75, 0.38]
+Exam Template:  [0.15, 0.11, 0.03, 0.11, 0.12, 0.1, 0.05, 0.04, 0.13, 0.09]
+Computed Ability: 0.471900
+
+
+Updating Database....... done.
+----------------------------------------------------------------------------------------------------
+Path Value = 2.93166467661
+Time Taken = 17.7
+(0, 0),3 -> (1, 1),5 -> (1, 0),7 -> (2, 0),3 -> (3, 2),1 -> (3, 1),1 -> (4, 0),1
+----------------------------------------------------------------------------------------------------
+Time taken: 121355 ms

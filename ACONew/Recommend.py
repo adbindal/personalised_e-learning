@@ -1,11 +1,12 @@
-import sys, random, ObjectiveFunction, StaticACO, IOUtils, RandomUtils
-
+import sys, random, IOUtils, RandomUtils
+import ObjectiveFunction, StaticACO
 
 #global lists and maps
 timeAssigned = {}
 totalLevels = 0
 PastPaths = "Students.paths"
 PastData = "Students.data"
+defaultMatrix = []
 
 class Data:
         """
@@ -64,20 +65,18 @@ class Student:
                 return
         
         # Getter functions for the class #
-        
-        def isSimilar(self, currentAbility, levelIndex):
+
+        def peerImportance(self, currentAbility, levelIndex):
                 " The function tries to find the similarity value between the given user's ability {current ability} and the past student given by self. "
                 
                 toleranceLimit = 0.1                            ## This gives the threshlod value for tolerance function
                 scope = 0.8                                     ## This decides the percent weightage for next and final value similarities
-                #######################################
-                nextLevelAbility, finalLevelAbility = expectedAbilities(currentAbility, totalLevels - levelIndex)       ## This now is consistent with the paper's algorithm.
-                #######################################
+                nextLevelAbility, finalLevelAbility = expectedAbilities(currentAbility, totalLevels - levelIndex)
                 T_next  = tolerance(nextLevelAbility, self.ability(levelIndex+1), toleranceLimit) if self.ability(levelIndex+1) > 0.33 else 0.0
                 T_final = tolerance(finalLevelAbility, self.ability(totalLevels), toleranceLimit) if self.ability(totalLevels) > 0.33 else 0.0
                 return T_next * scope + T_final * (1.0 - scope)
 
-        def isBetter(self, currentAbility, levelIndex):
+        def expertImportance(self, currentAbility, levelIndex):
                 " The function tries to find the expertise value between the given user's ability {current ability} and the past student given by self. "
                 
                 expertTolerance = 0.70                                                  ## Refers the minimum value after which level of expertise can be considered 
@@ -107,7 +106,7 @@ class Student:
                                 break
                 return timeSpent
 
-        def pathValue(self, levelIndex, course):
+        def pathValue(self, levelIndex, course, logfile):
                 " The function has been used to compute the path value of the path taken by the Stuent till level { levelIndex } in the { course } "
                 
                 road = StaticACO.Path()
@@ -130,7 +129,7 @@ class Student:
                         else:
                                 break
 
-                pathVal = ObjectiveFunction.pathValue(self.objective, road, Data(course, self))
+                pathVal = ObjectiveFunction.pathValue(self.objective, road, defaultMatrix, Data(course, self), logfile)
                 #if pathVal:    print pathVal
                 return pathVal
 
@@ -150,7 +149,10 @@ def expectedAbilities(_presentAbility, levelsLeft):
         for i in range(len(levelOfExpertise)-1):
                 if levelOfExpertise[i] < _presentAbility <= levelOfExpertise[i+1]:
                         _finalAbility = levelOfExpertise[i+1] + scaleScores(i)
+                        #print "\nPresent ability = %f" %_presentAbility
+                        #print "\nfinal ability = %f" %_finalAbility
         _nextAbility = _presentAbility + (_finalAbility - _presentAbility)/levelsLeft if levelsLeft else _finalAbility
+        #print "\nnext ability = %f" %_nextAbility
         return _nextAbility, _finalAbility
 
 def getVals(vertex):
@@ -168,7 +170,7 @@ def tolerance(testValue, baseValue, toleranceLimit):
         amountOftolerance = max((max(min(testValue, baseValue), 0.0) + toleranceLimit - max(testValue, baseValue))/toleranceLimit, 0.0)
         return amountOftolerance
 
-def getSimilarStudents(aim, user, course, path):
+def getSimilarStudents(aim, user, course, path, logfile ):
 
         # Let the user know about the current progress in the course
         print "Current Parameters --->  aim = %d fitF = %f time = %f  alpha = %f " % (aim, path.pathValue, path.timeTaken, user.learningAbility),
@@ -177,11 +179,7 @@ def getSimilarStudents(aim, user, course, path):
         
         # Local Variables used inside the function
         similarStudents = []                            ## Set of the similar students
-        
-        ##################################              ## Added to make the set(Experts) from the set(all students) instead of set(similar students)
         allStudents = []                                ## Set of All students with same aim
-        ##################################
-
         dataFile = open(PastData, "r")                  ## File conataining the records of the past student 
 
         for paths in open(PastPaths, "r"):
@@ -201,16 +199,14 @@ def getSimilarStudents(aim, user, course, path):
                 #diffable = (abs(temp.ability(currentLevel) - user.learningAbility)) >= toleranceValue
 
                 # Type 2 style, referred tolerance relation on rough sets for this
-                diffpath = tolerance(temp.pathValue(currentLevel, course), path.pathValue, toleranceValue)
+                diffpath = tolerance(temp.pathValue(currentLevel, course, logfile), path.pathValue, toleranceValue)
                 difftime = tolerance(temp.timeTaken(currentLevel, course), path.timeTaken, toleranceValue)
                 diffable = tolerance(temp.ability(currentLevel), user.learningAbility, toleranceValue)
 
-                ################ Changed this to store the set of all students and similar students in separate lists ##############
                 if obj == aim:
                         allStudents.append(temp)
                         if ((diffpath and difftime) or diffable):
                                 similarStudents.append(temp)
-                ####################################################################################################################
 
         dataFile.close()
         return allStudents, similarStudents
@@ -224,7 +220,7 @@ def nextPerspective(student, levelIndex):
                         return levelId, vertexId
         return None, None
 
-def getRecommendations(aim, course, user, pathFollowed):
+def getRecommendations(aim, course, user, pathFollowed, logfile):
         """
         (Course, User, Path) ---> Vertex.perspectiveIndex
 
@@ -235,50 +231,39 @@ def getRecommendations(aim, course, user, pathFollowed):
 
         """
 
-        global totalLevels
-        ratioWeight = 0.98                              ## Currently useless
-        fillTime(course)                                ## fill in the maximum time assigned to the perspectives in the global variable { time assigned }
+        global totalLevels, defaultMatrix
+        defaultMatrix = [[0.0 for j in range(course.numberOfPerspectivesAtLevel[i])] for i in range(course.numberOfLevels)]
+        ratioWeight = 0.98              ## Currently useless
+        fillTime(course)                ## fill in the maximum time assigned to the perspectives in the global variable { time assigned }
         currentLevel = pathFollowed.last().levelIndex   ## Put in the level we are currently at, means the user is on
         totalLevels = course.numberOfLevels             ## Stores the total levels available in the course
         numberOfChoices = course.numberOfPerspectivesAtLevel[currentLevel+1]    ## Stores number of perspectives available at next level
 
-        #print dir(user)
-        #print "\n"
-        
-        rType = ["Expert Recommendation", "Peer Recommendation"]
+        rType = ["Expert Recommendation", "Peer Recommendation"]                          ## used for printing what kind of recommendation is given to the users.
         print "Total Number of vertexes: ", numberOfChoices
-
-        ##########################                                                        ## Changed to return the total students with same Aim in addition to the similar students
-        totalSet, toleranceSet = getSimilarStudents(aim, user, course, pathFollowed)      ## Find the peer group of the current learner
-        ##########################
+        totalSet, toleranceSet = getSimilarStudents(aim, user, course, pathFollowed, logfile)      ## Find the total and peer group of the current learner
         print "Total Students   :- ", len(totalSet)
         print "Similar Students :- ", len(toleranceSet)
-        print user.name, "'s are provided with ", rType[int(user.choiceOfReco)], " !!!"
+        print "User's  are provided with ", rType[int(user.choiceOfReco)], " !!!"  
 
         Recommendation = [[0.0, 0.0] for _ in range(numberOfChoices)]           ## make an array for total [] and good [].
         #successfulSet = getSuccessfulStudents(toleranceSet)
 
-        ###############################################################################################################################
-        ## This loop helps determining the impact a particular student in the peer group has on the current student, and his choices ##
-        ##                                                                                                                           ##
-        ## Main change incorporated here, so that, now 2 loops run depending on the choice of reccommendation given by the obj. user ##
-        ##                                                                                                                           ##
-        if user.choiceOfReco > 0.0:
+        ## This loop helps determining the impact a particular student in the peer group has on the current student, and his choices
+        if user.choiceOfReco > 0.10:
                 for stud in toleranceSet:
                         levelId, vertexId = nextPerspective(stud, currentLevel)
-                        Recommendation[vertexId][1] += stud.isSimilar(user.learningAbility, currentLevel) * user.choiceOfReco
+                        Recommendation[vertexId][1] += stud.peerImportance(user.learningAbility, currentLevel) * user.choiceOfReco
                         Recommendation[vertexId][0] += 1.0
 
-        if user.choiceOfReco < 1.0:
+        if user.choiceOfReco < 0.90:
                 for stud in totalSet:
                         levelId, vertexId = nextPerspective(stud, currentLevel)
-                        expertIValue = stud.isBetter(user.learningAbility, currentLevel) * (1.0 - user.choiceOfReco)
+                        expertIValue = stud.expertImportance(user.learningAbility, currentLevel) * (1.0 - user.choiceOfReco)
                         Recommendation[vertexId][1] += expertIValue
+                        logfile.write("\nrecommendation value[%d][1] = %f\n" %(vertexId, expertIValue))
                         if expertIValue > 0.10:
                                 Recommendation[vertexId][0] += 1.0
-
-        ###############################################################################################################################
-                                
         ## Modified to include the number of students in support of the rule instead of just ratio
         successVal = lambda x, y: x/y if y != 0 else x
         successRate = [successVal(float(Recommendation[i][1]), float(Recommendation[i][0])) for i in range(numberOfChoices)]
@@ -287,9 +272,9 @@ def getRecommendations(aim, course, user, pathFollowed):
         print "Total Students    : ", [Recommendation[i][0] for i in range(numberOfChoices)]
         #print "Current Status    : ", successRate
 
-        #return successRate
-        maxRate = max(successRate)
-        return successRate.index(maxRate), maxRate
+        return successRate
+        #maxRate = max(successRate)
+        #return successRate.index(maxRate), maxRate
 
 def fillTime(course):
         " Computes and stores the time assigned for the perspectives in the course, has been used to compute the time spent by the past learner in the course "

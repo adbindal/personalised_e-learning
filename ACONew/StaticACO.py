@@ -1,9 +1,12 @@
 import sys, time, random, math
-import IOUtils, MiscUtils, RandomUtils, ObjectiveFunction, Exam, Recommend
+import IOUtils, MiscUtils, RandomUtils, Exam
+import  Recommend, ObjectiveFunction
 
-## For cross-checking purposes
-followedPath = ''
 
+## global Table needed
+# Instead of making some major changes to the code, I have made a dummy Table which is 0 by default to be sent in place of reco Table to the fitness function computation function
+recoMatrix  = []
+dummyMatrix = []
 
 # -> in place of Course.java
 class Course:
@@ -59,15 +62,9 @@ class User:
     """
 
     def __init__(self, numberOfAims, learningAbility):
-
-        ############################
-        self.name = "Test Student"  ## One change made here, for simplicity only, no algo requirement
-        ############################
         self.numberOfAims = numberOfAims
         self.learningAbility = learningAbility
-        ############################
-        self.choiceOfReco = 1.0     ## This variable is added as the choice variable regarding the Peer and Expert Recommendation
-        ############################
+        self.choiceOfReco = 1.0
         return
 
 # -> in place of SubVertex.java
@@ -109,6 +106,9 @@ class Vertex:
     def toString(self):
         " Function returns the id for the perspective alongwith the parent Level "
         return "(" + str(self.levelIndex) + ", " + str(self.perspectiveIndex) + ")"
+
+    def vid(self):
+        return self.perspectiveIndex
 
 # -> in place of Edge.java
 class Edge:
@@ -170,16 +170,6 @@ class Path:
         self.vertexSet = set([])
         self.timeTaken = 0.0
 
-    def __eq__(self, path):
-        " Makes sure that the path is equal to self by all means "
-        
-        assert self.pathValue == path.pathValue, " %f != %f " % (self.pathValue, path.pathValue)
-        assert self.timeTaken == path.timeTaken, " %f != %f " % (self.timeTaken, path.timeTaken)
-        assert self.vertexSet == path.vertexSet, " %s != %s " % (self.vertexSet, path.vertexSet)
-        assert self.vertexes  == path.vertexes,  " %s != %s " % (self.vertexes,  path.vertexes)
-        assert self.chosenLO  == path.chosenLO,  " %s != %s " % (self.chosenLO,  path.chosenLO)
-        return True
-
     def add(self, vertex, mask):
         """
         (Vertex, int) ---> None
@@ -194,6 +184,10 @@ class Path:
         self.chosenLO.append(mask)
         self.vertexSet |= set([vertex])
 
+    def remove(self, vertex):
+        self.vertexes.remove(vertex)
+        self.vertexSet.discard(vertex)        
+    
     def last(self):
         " Function returns the last vertex on the current path "
         
@@ -229,8 +223,6 @@ class Path:
         path.vertexes = [v for v in self.vertexes]
         path.vertexSet = set([V for V in self.vertexSet])
         path.chosenLO = [mask for mask in self.chosenLO]
-        assert self == path
-        
         return path
 
 # -> in place of ACO.java
@@ -268,8 +260,8 @@ class ACO:
         self.user = user
         self.course = course
         self.maximumTime = maximumTime
-        self.numberOfIterations = course.totalNumberOfVertexes * 50
-        self.numberOfAnts = 10
+        self.numberOfIterations = course.totalNumberOfVertexes * 300
+        self.numberOfAnts = 20
         self.alpha = 0.1
         self.beta = 1.2
         self.phi = maximumTime
@@ -368,6 +360,7 @@ class ACOExperimenter:
 
         # Initialization of the variables
         bestPath = Path()                                       # The variable to store the best Path through the course
+        #bestPath.pathValue = 0
         self.initialiseAnts()                                   # Setup the Ants so that they are ready to move
         self.initialisePheromoneTrails()                        # Initialize the edges with the default pheromone levels
 
@@ -379,14 +372,16 @@ class ACOExperimenter:
             lastEdgeTraversed = []                              # Stores the list of the last edges taken by list of ants
             
             for ant in self.data.ants:
-
                 # Next -> stores the vertex taken by the *ant* and add to *ant*'s path
-                Next = self.takeBestChoice(ant, logfile)    
-                logfile.write("Iteration: %d Ant: %d Vertex: %s\n" % (iteration, ant.antIndex, Next.toString()))
+                logfile.write("----------------------------------------------------------------------------------\n ")
+                logfile.write("Iteration: %d Ant: %d\n" % (iteration, ant.antIndex))
+                Next, chosenLOs = self.takeBestChoice(ant, currentLearningAim, logfile)    
+                logfile.write("Vertex chosen: %s\n" %(Next.toString()))
 
                 # Randomly choose some LOs including the first one which is mandatory
-                chosenLOs = (RandomUtils.getInt(1<<len(Next.SubVertexes)) | 1)
-                assert chosenLOs < (1 << len(Next.SubVertexes)), "LOs chosen > LOs available by ant %d in iteration %d" % (ant.antIndex, iteration)
+                #chosenLOs = (RandomUtils.getInt(1<<len(Next.SubVertexes)) | 1)
+                #logfile.write("\nChoosen LOs are %d" %chosenLOs)
+                #assert chosenLOs < (1 << len(Next.SubVertexes)), "LOs chosen > LOs available by ant %d in iteration %d" % (ant.antIndex, iteration)
 
                 # Add the choices made above to ant's path
                 ant.path.add(Next, chosenLOs)
@@ -396,30 +391,35 @@ class ACOExperimenter:
                 if Next == self.destination:
 
                     # If yes, then compute the pathValue of this path and update the best path
-                    ant.path.pathValue = ObjectiveFunction.pathValue(currentLearningAim, ant.path, self.data)
+                    ant.path.pathValue = ObjectiveFunction.pathValue(currentLearningAim, ant.path, recoMatrix, self.data, logfile)
                     
                     # Store Various Paths taken by ants
                     paths = open("../Standard.paths", "a")
                     paths.write("PATH {No.: %d, Ant: %d}\n" % (iteration, ant.antIndex))
                     IOUtils.printPath(ant.path, paths)
-                    paths.close()
+                    
 
                     # Replace the best path if ant's path has better fitness
                     if bestPath.pathValue < ant.path.pathValue:
                         bestPath = ant.path.clone()
-                        
+                        logfile.write("--------------------------------------------------------------------------------\n")
                         # Additional Info, If a real path has been found
                         logfile.write("---------------------------------NEW BEST PATH----------------------------------\n")
                         logfile.write("Iteration -> %d, Ant -> %d\n" % (iteration, ant.antIndex))
                         IOUtils.printPath(bestPath, logfile)
                         logfile.write("--------------------------------------------------------------------------------\n")
-                    
+                        paths.write("---------------------------------NEW BEST PATH----------------------------------\n")
+                        paths.write("Iteration -> %d, Ant -> %d\n" % (iteration, ant.antIndex))
+                        IOUtils.printPath(bestPath, paths)
+                        paths .write("--------------------------------------------------------------------------------\n")
+                        paths.close()
                     # Reset the attributes of the target ant
                     ant.startOver()
 
         #######
         # PHASE 3 => UPDATION OF PATH PRIORITIES
-                              
+
+            #local updation                  
             # Pheromone Updation after ants have moved along one step
             for edge in lastEdgeTraversed:
 
@@ -429,7 +429,8 @@ class ACOExperimenter:
                 # For the edges between vertexes at different levels
                 else:
                     edge.pheromone += self.data.initialPheromone / edge.difficulty
-            
+
+            #Global updation on best path
             # Adjust Pheromone for the best Path to destination
             i, j = 0, 1
             while j < len(bestPath.vertexes):
@@ -466,7 +467,7 @@ class ACOExperimenter:
                     edge.pheromone = self.data.initialPheromone
         return
 
-    def takeBestChoice(self, ant, logfile):
+    def takeBestChoice(self, ant, currentLearningAim, logfile):
         """
         (Ant) ---> Vertex
 
@@ -480,26 +481,62 @@ class ACOExperimenter:
         probability = []                                # Probabilty vector for each outgoing Edge
         destinations = []                               # Vertex to which the edge terminates
         cumulativeProbability = []                      # cumulative Probability of the edge choice
+        chosenLO = []
         randomProbability = RandomUtils.getDouble()     # The random probability for an ant to take an edge
         assert 0.0 <= randomProbability <= 1.0, "probability out of bounds"
-
         logfile.write("Ant Id = %d\n" % ant.antIndex)
-        for edge in ant.path.last().edgeList:            
+        k = 0
+        #for edge in ant.path.last().edgeList:
+        #    if not ant.visited(edge.destination):
+        #        logfile.write("edges destination are:%d" %edge.destination.vid())
+
+        logfile.write("\n")        
+        for edge in ant.path.last().edgeList:     # give all edges from last vertex of ant's path       
             if not ant.visited(edge.destination):
 
+                # Modified the function to include the values from the recommendations as well #
+                vertex = edge.destination               # The destination vertex for the edge  #
+                recVal = recoMatrix[vertex.levelIndex][vertex.perspectiveIndex]  # reco Values  #
+                #------------------------------------------------------------------------------#
+                logfile.write("\nRecommendation value for vertex %d = %d\n" %(vertex.perspectiveIndex, recVal))
                 logfile.write("Edge data ---> " + edge.toString())
-                              
+                 # Randomly choose some LOs including the first one which is mandatory
+                k = (RandomUtils.getInt(1<<len(vertex.SubVertexes)) | 1)
+                logfile.write("\nChoosen LOs are %d" %k)
+                assert k < (1 << len(vertex.SubVertexes)), "LOs chosen > LOs available by ant %d in iteration %d" % (ant.antIndex, iteration)
+                #ant.path.add(vertex, k)             
                 # Compute the probablity for visiting an unvisited node
-                p = self.calculateProbability(edge.pheromone, edge.difficulty, ObjectiveFunction.calculateLA(edge.destination.timeAssigned, self.data.course.maximumLAAtLevel[edge.destination.levelIndex], self.data.user.learningAbility))
-                logfile.write(" p = %f\n" % p)
-                assert 0.0 <= p <= 1.0, "probability out of bounds"
-  
+                # multiplied the stuff with the recVal values, so the vertex which has higher recommendation will have a higher 'p' value, hence, more chances to be taken up by the ants.
+                #if (flag ==0):
+                #    logfile.write("flag 0\n")
+                #    p = self.calculateProbability(edge.pheromone, edge.difficulty, ObjectiveFunction.calculateLA(edge.destination.timeAssigned, self.data.course.maximumLAAtLevel[edge.destination.levelIndex], self.data.user.learningAbility), logfile)
+                #else:
+                #    logfile.write("flag %d\n" %flag)
+                length = len(ant.path.vertexes)
+                timeSpentVertex = 0.0
+                for j in range(len(vertex.SubVertexes)):
+                    if (k & 1<<j) != 0:
+                        timeSpentVertex += vertex.timeAssigned * self.data.course.LALOPT[vertex.levelIndex][currentLearningAim][j]
+                p = self.calculateProbability(edge.pheromone, edge.difficulty, ObjectiveFunction.calculateLA(timeSpentVertex, self.data.course.maximumLAAtLevel[edge.destination.levelIndex], self.data.user.learningAbility, recVal, logfile), logfile)
+                logfile.write("\np = %f\n" % p)
+                assert 0.0 <= p <= 1.1, "probability out of bounds"
+                
                 # Add it to the existing list of probabilities for the ant
                 probability.append(p)
+                chosenLO.append(k)
                 destinations.append(edge.destination)
-
+                #ant.path.remove(vertex)
+                
+        for i in range(len(destinations)):
+            logfile.write("\n destination[%d] = %d" %(i,destinations[i].vid()))
+            
         # Normalize the vector obtained for probabilities and compute cumulative probablity (so that cumProb[-1] == 1)
         probability = MiscUtils.normalize(probability)
+        #logfile.write("\nNormalized value for probability")
+        i = 0
+        while i < len(probability):
+            logfile.write("\ni = %d Normalized probability = %f" %(i,probability[i]))
+            i = i+1
         cumulativeProbability = MiscUtils.cumulative(1.0, probability)
         assert len(cumulativeProbability) == 1 or 0.99 <= cumulativeProbability[-1] <= 1.01, "Value = " + str(cumulativeProbability)
         
@@ -508,15 +545,17 @@ class ACOExperimenter:
 
         # Take the destination Edge as the one whose cumulative Probability lies in between the random Probability for the Ant.
         i, j = 0, 1
+        logfile.write("\nRandom Probability: %f\n" %randomProbability)
         while j < len(cumulativeProbability):
             if cumulativeProbability[i] <= randomProbability <= cumulativeProbability[j]:
                 res = destinations[i]
+                break
             i, j = i+1, j+1
 
         assert res in destinations, "A vertex outside of available ones has been chosen"
-        return res
+        return res, chosenLO[i]
 
-    def calculateProbability(self, pheromone, difficulty, learningAchievement):
+    def calculateProbability(self, pheromone, difficulty, learningAchievement, logfile):
         """
         (float, float, float) ---> float
 
@@ -527,9 +566,15 @@ class ACOExperimenter:
       
         Function to compute the probability for taking a particular path by an Ant
         """
-
+        x = pheromone**self.data.alpha
+        y = learningAchievement**self.data.beta
+        z = x * y
+        logfile.write("\nPheromone factor: %f" %x)
+        logfile.write("\nHeuristic factor: %f" %y)
+        logfile.write("\nProbability: %f" %z)
+        
                # Pheromone Part               # Heuristics Part
-        return (pheromone**self.data.alpha) * (learningAchievement**self.data.beta)
+        return z   #(pheromone**self.data.alpha) * (learningAchievement**self.data.beta)
  
 # -> in place of Solver.java
 # My View: This class can be removed and the function can be moved to a newer file capable of executing any course available in above framework.
@@ -584,7 +629,7 @@ class Solver:
         maximumTime = input()
         return user, course, maximumTime
 
-    def regress(self, idx, user, course, maximumTime, vertexId, aim):
+    def regress(self, levelId, stats, user, course, maximumTime, vertexId, aim):
         """
         (User, Course, float, array, int) ---> Path
 
@@ -599,7 +644,7 @@ class Solver:
         """    
 
         dummyVertex = Vertex(-1, -1, 0, 0)
-        dummyVertex.edgeList.append(Edge(course.levels[idx].vertexes[vertexId], 0))
+        dummyVertex.edgeList.append(Edge(course.levels[levelId].vertexes[vertexId], 0))
         #if not idx:
         #    dummyVertex.edgeList.append(Edge(course.levels[idx].vertexes[0], 0))
         #else:
@@ -608,9 +653,10 @@ class Solver:
         Ant.dummyVertex = dummyVertex
         data = ACO(user, course, maximumTime)
         experimenter = ACOExperimenter(data)
-        stats = open("DynamicLevel%dAim%d.log" % (idx, aim), "w")
+        #stats = open("DynamicLevel%dAim%d.log" % (idx, aim), "w")
+        #print("dynamic file %d created" %idx)
         path = experimenter.start(aim, stats)
-        stats.close()
+        #stats.close()
         return path
 
 ## Function Newly Added to handle the Dynamism of the code ##
@@ -633,12 +679,12 @@ class Dynamic:
         self.dummyVertex = Vertex(-1, -1, 0, 0)         # added for the sake of start thing, mainly to get the computation 
         self.scores = []                                # Should be added in class User.
         return
-
+    
     def Run(self, index):
         " Function is the main function to find the path for the target user "
 
-        global followedPath
         user, course, maximumTime = self.s.takeIP()                                 ## Fills in required values for variables
+        print "Learner's Ability = %f" %user.learningAbility
         self.aimOfUser = input()                                                    ## Stores the aim of the user separately
         self.dummyVertex.edgeList.append(Edge(course.levels[0].vertexes[0], 0))     ## Make a virtual vertex before the graph actually start
         self.pathTaken.add(self.dummyVertex, 0)                                     ## add it to the path of the user
@@ -646,30 +692,44 @@ class Dynamic:
         loopTimes = course.numberOfLevels                               
         remainingTime = maximumTime
         vertexId = 0                                                                ## Starting vertex id used for regress function of the solver
+       
+        # Initialise the global matrices #
+        #global dummyMatrix
+        global recoMatrix
+        #dummyMatrix = [[0.0 for j in range(course.numberOfPerspectivesAtLevel[i])] for i in range(course.numberOfLevels)]
+        recoMatrix = [[1.0 for j in range(course.numberOfPerspectivesAtLevel[i])] for i in range(course.numberOfLevels)]
+        #--------------------------------#
 
-        for idx in range(loopTimes):
+        for idx in range(loopTimes):    # loop runs from 0 to 4 (5 times as we have five levels)
 
             ## Beautification of the output ##
-            print "*"*45 + " LEVEL %d " % (idx+1) + "*"*45
+            print "*"*30 + " LEVEL %d " % (idx+1) + "*"*30
             print "Time Remaining: " + str(remainingTime)
-            path = self.s.regress(idx, user, course, remainingTime, vertexId, self.aimOfUser)
+            levelId = idx-1 if idx != 0 else 0
+            stats = open("DynamicLevel%dAim%d.log" % (idx, self.aimOfUser), "w")
+            print("dynamic file %d created" %idx)
+            raw_path = self.s.regress(levelId, stats, user, course, remainingTime, vertexId, self.aimOfUser)
+            path = self.strip(raw_path, idx-1, course)                              ## To get the path which actually starts from the upcoming level
+            path.pathValue = ObjectiveFunction.pathValue(self.aimOfUser, path, recoMatrix, ACO(user, course, maximumTime), stats)
             IOUtils.printPath(path, sys.stdout)
+            
             ##------------------------------##
 
             ## 1. Modification of the entities ##
-            self.addLevel(path)
+            self.addLevel(path, idx)   # ----> modified
+            vertexId = self.pathTaken.last().perspectiveIndex
             remainingTime = self.modifyTime(path, remainingTime, course)
 
             # 2. Following function works on getting new ability, simple application is used till now:-
             # -> more complex computation can be used
             # -> LALOPT table can be used for the computation as well.
-            user.learningAbility, score_in_exam = self.modifyAbility(user) 
+            user.learningAbility, score_in_exam = self.modifyAbility(user, stats) 
             self.scores.append(score_in_exam)
             performance = score_in_exam
             #performance = Improvement.computePerformance(self.scores, idx, score_in_exam)           
 
             ## 3. Adjustment of the path using the objective function. py file ##
-            self.pathTaken.pathValue = ObjectiveFunction.pathValue(self.aimOfUser, self.pathTaken, ACO(user, course, maximumTime))
+            self.pathTaken.pathValue = ObjectiveFunction.pathValue(self.aimOfUser, self.pathTaken, recoMatrix, ACO(user, course, maximumTime), stats)
 
             ## Uncomment them if you want to look at the path followed by the user step by step ##
             #print "Path followed till now :-"
@@ -682,17 +742,23 @@ class Dynamic:
 
                 # Adjust the pheromone levels on the vertices which are being given either by the experts or by the recommendation
                 #sVertex, p1 = self.nextVertex(path), performance / (performance + user.learningAbility)
-                sVertex, p1 = self.nextVertex(path), (performance - user.learningAbility)/(user.learningAbility) if performance > user.learningAbility else (performance)/(performance + user.learningAbility)
-                rVertex, p2 = Recommend.getRecommendations(self.aimOfUser, course, user, self.pathTaken)
-                
+                #sVertex, p1 = self.nextVertex(path), (performance - user.learningAbility)/(user.learningAbility) if performance > user.learningAbility else (performance)/(performance + user.learningAbility)
+                #rVertex, p2 = Recommend.getRecommendations(self.aimOfUser, course, user, self.pathTaken)
+
+                #----> Modified to return an array.
+                print "\nRecommendation Matrix:\n  "
+                reco_values = Recommend.getRecommendations(self.aimOfUser, course, user, self.pathTaken, stats)
+                for i,val in enumerate(reco_values):
+                    recoMatrix[idx+1][i] = 1 + val
+                    print "%f" %val
                 # Decide which one can be taken for this purpose, by the ants basis.
-                probs = MiscUtils.cumulative(1.0, MiscUtils.normalize([p1, p2]))
-                choice = RandomUtils.getDouble()
-                vertexId = sVertex if choice <= probs[1] else rVertex
+                #probs = MiscUtils.cumulative(1.0, MiscUtils.normalize([p1, p2]))
+                #choice = RandomUtils.getDouble()
+                #vertexId = sVertex if choice <= probs[1] else rVertex
                 
                 #print "Static Vertex is %d" % sVertex
                 #print "Recommended Vertex is %d" % rVertex
-                print "Vertex Taken is %d" % vertexId
+                #print "Current Vertex is %d" % vertexId
 
         # Add the current student to the set of past students
         print "\n\nUpdating Database.......",
@@ -701,52 +767,52 @@ class Dynamic:
 
         # Present the regression results on Screen
         print "-"*100
-
-        
-        followedPath = self.pathTaken.clone()
-
-
-        self.pathTaken.pathValue = ObjectiveFunction.pathValue(self.aimOfUser, self.pathTaken, ACO(user, course, maximumTime))
+        self.pathTaken.pathValue = ObjectiveFunction.pathValue(self.aimOfUser, self.pathTaken, recoMatrix, ACO(user, course, maximumTime), stats)
+        stats.close()
         IOUtils.printPath(self.pathTaken, sys.stdout)
         print "-"*100
-
-        choice = 'y' #map(str, raw_input(" Wish do crosscheck the result computation ? (y/n)"))
-        if choice == 'y':
-            followedPath.pathValue = ObjectiveFunction.pathValue(self.aimOfUser, followedPath, ACO(user, course, maximumTime))
-            assert followedPath == self.pathTaken, "Problem in computation"
-            print "crosscheck finished successfully...."
-            
         ## ------- End 1. -------##
         return
 
-    def nextVertex(self, path):
+    def strip(self, raw_path, levelId, course):
         """
-        (Path) ---> Index
+        (Path, currentLevel, Course) ---> Path
+        
+        @params raw_path: @Type class Path provide the path returned from the regression function.
+        @params levelId:  @Type int contains the index of the current level of the user.
+        @params course:   @Type class Course contains the course structure, to link the dummy node to new start vertex for the user.
+        @return path: @Type class Path modified path starting from the node, which the user is recommended by the system to take at the next level.
+        
+        Function strips the raw_path by removing the unncessary vertices and edges from it and constructing a path from the vertex on the upcoming level.
+        """
+
+        path = Path()
+        dummyVertex = Vertex(-1, -1, 0, 0)
+        start = -1
+        for i in range(len(raw_path.vertexes)):
+            vertex = raw_path.vertexes[i]
+            if vertex.levelIndex > levelId:
+                path.add(vertex, raw_path.chosenLO[i])
+                if start == -1:
+                    start = vertex.perspectiveIndex
+                    
+        dummyVertex.edgeList.append(Edge(course.levels[levelId+1].vertexes[start], 0))
+        path.vertexes = [dummyVertex] + path.vertexes
+        path.chosenLO = [0] + path.chosenLO
+        path.vertexSet = set(path.vertexes)
+        return path
+
+    def addLevel(self, path, currentLevel):
+        """
+        (Path, currentLevel) ---> None
 
         @params path: @Type class Path provide the path being suggested to the user
-        @return Index: @Type int gives the index of the perspective to be taken up on next level
-        
-        Function helps in computing the next vertex that has to be given the path currently followed by the user. """
-        
-        ## This function gives static choice of the vertex as we had discussed, static for me meant the vertex to be chosen by following the current path ##        
-        currentLevel = self.pathTaken.last().levelIndex
-        vertexIndex = 0
-        for vertex in path.vertexes:
-            if vertex.levelIndex == (currentLevel+1):
-                return vertex.perspectiveIndex
-        return None
-
-    def addLevel(self, path):
-        """
-        (Path) ---> None
-
-        @params path: @Type class Path provide the path being suggested to the user
+        @params currentLevel: @Type int tells the id of the current level of the user, or the level whose vertices are to be added to the path.
         @note: The function modifies the class variable pathTaken with the currentLevel vertices
 
         Function tries to append the current level's vertices taken by user to his followed path
         """
-
-        currentLevel = path.vertexes[1].levelIndex
+        
         for i in range(len(path.vertexes)):
             vertex = path.vertexes[i]
             if vertex.levelIndex != -1 and vertex.levelIndex == currentLevel:
@@ -782,7 +848,7 @@ class Dynamic:
         #print "%f on Level %d" % (timeSpent, currentLevel)
         return maximumTime - timeSpent
 
-    def modifyAbility(self, user):
+    def modifyAbility(self, user, logfile):
         """
         (User) ---> float
 
@@ -798,19 +864,28 @@ class Dynamic:
         """
 
         currentAbility = user.learningAbility
-        print "Current Ability: %f" % currentAbility
+        print "\nCurrent Ability: %f" % currentAbility
+        logfile.write("\nCurrent Ability: %f" % currentAbility)
         Adaptability = 0.8
-        numberOfQuestions = RandomUtils.getRange(10, 15)
-
-        scoreOfUser = Exam.getMarks(numberOfQuestions) 
-        print "User's Score: ", scoreOfUser
-        ExamTemplate = Exam.getTemplate(numberOfQuestions)
-        print "Exam Template: ", ExamTemplate
+        numberOfQuestions = RandomUtils.getRange(10, 15)  
+        logfile.write("\nUser score for %d numOfQues\n" %numberOfQuestions)
+        scoreOfUser = Exam.getMarks(numberOfQuestions)      # give marks of student
+        for i, val in enumerate(scoreOfUser):
+            logfile.write(" Q[%d] = %f" %(i, scoreOfUser[i]))
+        logfile.write("\nRelevance table for LA = 0\n")
+        ExamTemplate = Exam.getTemplate(numberOfQuestions)  # give relevance of questions according to learning aim
+        for i,val in enumerate(ExamTemplate):
+            logfile.write (" Q[%d] = %f " %(i, ExamTemplate[i]))
+        #for i in range(ExamTemplate):
+        #    logfile.write("\nR[%d] = %f " %( i, ExamTemplate[i]))
         
-        computedAbility = Exam.getScore(numberOfQuestions, scoreOfUser, ExamTemplate)
-        print "Computed Ability: %f" % computedAbility
-        
-        return currentAbility * Adaptability + computedAbility * (1 - Adaptability), computedAbility
+        performance = Exam.getScore(numberOfQuestions, scoreOfUser, ExamTemplate)  #calculate learner's score
+        print "\nPerformance: %f" % performance
+        logfile.write("\nPerformance: %f" % performance)
+        computedAbility = currentAbility * Adaptability + performance * (1 - Adaptability)
+        print ("\nComputed Ability = %f" %computedAbility)
+        logfile.write("\n Computed Ability = %f" %computedAbility)
+        return computedAbility, performance
 
     
 # -> in place of main.java
