@@ -129,7 +129,7 @@ class Student:
                         else:
                                 break
 
-                pathVal = ObjectiveFunction.pathValue(self.objective, road, defaultMatrix, Data(course, self), logfile)
+                pathVal = ObjectiveFunction.pathValue(self.objective, road, defaultMatrix, Data(course, self), logfile, 0)
                 #if pathVal:    print pathVal
                 return pathVal
 
